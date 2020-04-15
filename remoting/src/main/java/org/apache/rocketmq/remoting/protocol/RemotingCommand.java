@@ -59,6 +59,7 @@ public class RemotingCommand {
     private static SerializeType serializeTypeConfigInThisServer = SerializeType.JSON;
 
     static {
+        //通过 系统变量进行自定义 编码类型 默认值为JSON格式
         final String protocol = System.getProperty(SERIALIZE_TYPE_PROPERTY, System.getenv(SERIALIZE_TYPE_ENV));
         if (!isBlank(protocol)) {
             try {
@@ -75,11 +76,14 @@ public class RemotingCommand {
     private int opaque = requestId.getAndIncrement();
     private int flag = 0;
     private String remark;
+    //扩展字段的名称和值 也就是发送的消息体
     private HashMap<String, String> extFields;
+    //消息体的封装类型 不参与序列化
     private transient CommandCustomHeader customHeader;
 
     private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
 
+    //消息体 不参与序列化
     private transient byte[] body;
 
     protected RemotingCommand() {
@@ -331,13 +335,16 @@ public class RemotingCommand {
 
         // 2> header data length
         byte[] headerData = this.headerEncode();
+        //加上头部的长度
         length += headerData.length;
 
         // 3> body data length
+        //加上 body的长度
         if (this.body != null) {
             length += body.length;
         }
 
+        //使用 byteBuffer增加分配内容的总量 使用的是 堆内容 HeapByteBuffer
         ByteBuffer result = ByteBuffer.allocate(4 + length);
 
         // length
@@ -359,25 +366,34 @@ public class RemotingCommand {
         return result;
     }
 
+    //头部进行编码
     private byte[] headerEncode() {
+        //将封装了生产者的发送的所有信息 CommandCustomHeader进行编码 存储在Map
         this.makeCustomHeaderToNet();
+        //自定义的MQ序列化对象 进行序列化编码
         if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) {
             return RocketMQSerializable.rocketMQProtocolEncode(this);
         } else {
+            //否则使用 alibaba 的fastjson进行序列化 默认值是 json的序列编码格式
             return RemotingSerializable.encode(this);
         }
     }
 
     public void makeCustomHeaderToNet() {
+        //发送消息的所有信息
         if (this.customHeader != null) {
+            //获取所有字段的数据类型
             Field[] fields = getClazzFields(customHeader.getClass());
+
             if (null == this.extFields) {
                 this.extFields = new HashMap<String, String>();
             }
 
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
+                    //字段的名称 a b c d .....
                     String name = field.getName();
+
                     if (!name.startsWith("this")) {
                         Object value = null;
                         try {

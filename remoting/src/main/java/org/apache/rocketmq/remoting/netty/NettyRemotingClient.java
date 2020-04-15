@@ -516,11 +516,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (channel != null && channel.isActive()) {
             try {
                 doBeforeRpcHooks(addr, request);
+                //执行完上面步骤 是否已经超时的检测
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 if (timeoutMillis < costTime) {
                     throw new RemotingTooMuchRequestException("invokeAsync call timeout");
                 }
+
                 this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, invokeCallback);
+
             } catch (RemotingSendRequestException e) {
                 log.warn("invokeAsync: send request exception, so close the channel[{}]", addr);
                 this.closeChannel(addr, channel);
@@ -615,6 +618,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    //继承了 客户端的SimpleChannelInBoundHandler 协议对象是自定义的RemotingCommand对象
+    //实现Decoder Encoder对消息内容进行编码和解码
     class NettyClientHandler extends SimpleChannelInboundHandler<RemotingCommand> {
 
         @Override
