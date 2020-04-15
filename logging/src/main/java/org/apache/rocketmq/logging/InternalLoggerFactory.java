@@ -25,6 +25,8 @@ public abstract class InternalLoggerFactory {
 
     public static final String LOGGER_INNER = "inner";
 
+    public static final String LOGGER_LOGBACK = "logback";
+
     public static final String DEFAULT_LOGGER = LOGGER_SLF4J;
 
     private static String loggerType = null;

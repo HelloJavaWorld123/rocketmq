@@ -27,6 +27,7 @@ import org.apache.rocketmq.logging.inner.Logger;
 import org.apache.rocketmq.logging.inner.LoggingBuilder;
 import org.apache.rocketmq.logging.inner.LoggingEvent;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class ClientLogger {
 
@@ -56,6 +57,16 @@ public class ClientLogger {
         } else {
             CLIENT_LOGGER = InternalLoggerFactory.getLogger(LoggerName.CLIENT_LOGGER_NAME);
         }
+        createConsoleAppender();
+    }
+
+    private static void createConsoleAppender() {
+        LoggingBuilder.ConsoleAppender consoleAppender = new LoggingBuilder.ConsoleAppender();
+        Layout layout = LoggingBuilder.newLayoutBuilder().withDefaultLayout().build();
+        consoleAppender.setLayout(layout);
+        consoleAppender.setImmediateFlush(Boolean.TRUE);
+        consoleAppender.setEncoding(RemotingHelper.DEFAULT_CHARSET);
+        consoleAppender.activateOptions();
     }
 
     private static synchronized Appender createClientAppender() {
