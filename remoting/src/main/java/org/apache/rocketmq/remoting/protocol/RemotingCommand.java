@@ -21,9 +21,11 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -212,13 +214,15 @@ public class RemotingCommand {
         return true;
     }
 
-    public static byte[] markProtocolType(int source, SerializeType type) {
+    public static byte[]  markProtocolType(int source, SerializeType type) {
         byte[] result = new byte[4];
 
         result[0] = type.getCode();
         result[1] = (byte) ((source >> 16) & 0xFF);
         result[2] = (byte) ((source >> 8) & 0xFF);
         result[3] = (byte) (source & 0xFF);
+        java.lang.String s = new java.lang.String(result, Charset.defaultCharset());
+        log.info("-----------------这四个小块表示的内容是:",s);
         return result;
     }
 
@@ -329,6 +333,14 @@ public class RemotingCommand {
         return name;
     }
 
+
+    /**
+     * 这是整个消息进行编码 最后的形式如下:
+     * +----------+----------+----------------+      +----------+----------+----------------+
+     * |  Length  | Header 1 | Actual Content |----->|  Length  | Header 1 | Actual Content |
+     * | 总长度    | Header   | "body data   " |      | 0x00000C |  0xCAFE  | "HELLO, WORLD" |
+     * +----------+----------+----------------+      +----------+----------+----------------+
+     */
     public ByteBuffer encode() {
         // 1> header length size
         int length = 4;
@@ -345,9 +357,13 @@ public class RemotingCommand {
         }
 
         //使用 byteBuffer增加分配内容的总量 使用的是 堆内容 HeapByteBuffer
+        // 头部4个字节 表示总长度
+        //下一个4个字节 分成4分 序列化类型+
+        //下一个表示 header的长度
+        //下一个表示 body的长度
         ByteBuffer result = ByteBuffer.allocate(4 + length);
 
-        // length
+        // length =
         result.putInt(length);
 
         // header length

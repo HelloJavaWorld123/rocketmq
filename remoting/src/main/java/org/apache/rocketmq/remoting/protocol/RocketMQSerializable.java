@@ -42,9 +42,11 @@ public class RocketMQSerializable {
             extLen = extFieldsBytes.length;
         }
 
+        //上面进行计算个别特殊 内容的长度 然后计算需要分配的总容量的 byteBuffer
         int totalLen = calTotalLen(remarkLen, extLen);
 
         ByteBuffer headerBuffer = ByteBuffer.allocate(totalLen);
+        //以下对内容进行填充 对每个位置处进行填充
         // int code(~32767)
         headerBuffer.putShort((short) cmd.getCode());
         // LanguageCode language
@@ -125,9 +127,9 @@ public class RocketMQSerializable {
             + 4
             // int flag
             + 4
-            // String remark
+            // String remark 用int表示 remark的长度  remark 是内容的长度
             + 4 + remark
-            // HashMap<String, String> extFields
+            // HashMap<String, String> extFields  int表示 ext的长度 ext表示内容的长度
             + 4 + ext;
 
         return length;
