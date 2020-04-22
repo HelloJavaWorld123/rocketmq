@@ -218,8 +218,12 @@ public class RemotingCommand {
     }
 
     public static byte[]  markProtocolType(int source, SerializeType type) {
+        //十六进制中 每个是4位 两个16进制才是一个字节
+        //4个字节的数组 刚好32位
+        //负数 使用正直的补码形式表示
         byte[] result = new byte[4];
 
+        //第一个字节是8位
         result[0] = type.getCode();
         result[1] = (byte) ((source >> 16) & 0xFF);
         result[2] = (byte) ((source >> 8) & 0xFF);
@@ -345,7 +349,7 @@ public class RemotingCommand {
      * +----------+----------+----------------+      +----------+----------+----------------+
      */
     public ByteBuffer encode() {
-        // 1> header length size
+        // 1> header length size 4个字节保存
         int length = 4;
 
         // 2> header data length
