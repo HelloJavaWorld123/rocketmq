@@ -31,11 +31,30 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
+    /**
+     *
+     * @param ctx
+     * @param remotingCommand
+     * @param out : 创建的可能是 HeapByteBuffer  或者 DirectByteBuffer
+     *            初始化的容量是 256 最大的容量是 Integer的size
+     * @throws Exception
+     *
+     * message的组成部分
+     *
+     *  * +--------+------+      +--------+------+
+     *  * | header | Body |----->| header | Body |
+     *  * | 0x000C | body |      | 0x000C | Body |
+     *  * +--------+-----+      +--------+-------+
+     *
+     *  在 header 中再进一步细分 比如 消息体的总长度 头部的长度 序列化的类型 语言类型 remark长度和remark的内容
+     *
+     */
     @Override
     public void encode(ChannelHandlerContext ctx, RemotingCommand remotingCommand, ByteBuf out)
         throws Exception {
         try {
-            //对头部进行编码
+            //将内容全部写到bytebuffer 中 会改变 writerIndex的值
+            // 使得 writerIndex大于 readerIndex 大于0  当前的byteBuffer就处于可读的状态 在通过 ctx 发送出去
             ByteBuffer header = remotingCommand.encodeHeader();
             out.writeBytes(header);
             byte[] body = remotingCommand.getBody();

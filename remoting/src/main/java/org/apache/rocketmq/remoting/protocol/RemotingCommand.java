@@ -148,8 +148,11 @@ public class RemotingCommand {
     }
 
     public static RemotingCommand decode(final ByteBuffer byteBuffer) {
+        //总长度
         int length = byteBuffer.limit();
+        // 4+headerDataLength+BodyLength
         int oriHeaderLen = byteBuffer.getInt();
+
         int headerLength = getHeaderLength(oriHeaderLen);
 
         byte[] headerData = new byte[headerLength];
@@ -432,6 +435,15 @@ public class RemotingCommand {
         return encodeHeader(this.body != null ? this.body.length : 0);
     }
 
+    /**
+     * @param bodyLength ： body的长度
+     * @return : 将头部组装好的 byteBuffer 返回
+     * 这里面计算
+     * 消息体的总长度 = 4 + headerDateLength + bodyDateLength
+     * 头部的长度
+     * 并保存头部的数据
+     * 但不保存 body的数据  body的数据再外层进行直接直接的写入
+     */
     public ByteBuffer encodeHeader(final int bodyLength) {
         // 1> header length size
         int length = 4;
@@ -445,17 +457,19 @@ public class RemotingCommand {
         // 3> body data length
         length += bodyLength;
 
+        //分配堆内存 多分配的4个长度用于保存消息体的总长度
         ByteBuffer result = ByteBuffer.allocate(4 + length - bodyLength);
 
-        // length
+        // 消息体的总长度放在首位 length = 4+4+headerDataLength+bodyDataLength
         result.putInt(length);
 
-        // header length
+        // header length 分成4块 serializeType +
         result.put(markProtocolType(headerData.length, serializeTypeCurrentRPC));
 
         // header data
         result.put(headerData);
 
+        //将bytebuffer 从 写的状态 转变为 可读的状态
         result.flip();
 
         return result;
