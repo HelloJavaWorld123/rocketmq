@@ -49,10 +49,15 @@ public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
+
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    //集群 集群名称和集群下 broker的名称的表 这也说明 如果集群下有重名的broker则不会存在
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    //这个brokerAddr是IP吗？还是IP:port???
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    //
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
@@ -440,14 +445,21 @@ public class RouteInfoManager {
         }
     }
 
+    //从channel监听器中 监听到channel销毁时 进行处理
+    //当一个channel 关闭的时候进行以下数据的删除：
+    //根据当前的channel 从Address --- BrokerLiveInfo(Broker的channel信息)  找到对应的Broker地址
+    //从BrokerAddrTable中 更具Address中找到对应的BrokerName (BrokerData 中有BrokerId与BrokerAddress的Map) 找到对应的BrokerName记录 并从当前Map中移除
     public void onChannelDestroy(String remoteAddr, Channel channel) {
+        //broker的地址
         String brokerAddrFound = null;
         if (channel != null) {
             try {
                 try {
+                    //加锁
                     this.lock.readLock().lockInterruptibly();
                     Iterator<Entry<String, BrokerLiveInfo>> itBrokerLiveTable =
                         this.brokerLiveTable.entrySet().iterator();
+                    //循环找到 channel相等的 broker的Address
                     while (itBrokerLiveTable.hasNext()) {
                         Entry<String, BrokerLiveInfo> entry = itBrokerLiveTable.next();
                         if (entry.getValue().getChannel() == channel) {
@@ -456,6 +468,7 @@ public class RouteInfoManager {
                         }
                     }
                 } finally {
+                    //解锁
                     this.lock.readLock().unlock();
                 }
             } catch (Exception e) {
@@ -463,6 +476,7 @@ public class RouteInfoManager {
             }
         }
 
+        //如果没有找到 使用Netty传送过来的Address
         if (null == brokerAddrFound) {
             brokerAddrFound = remoteAddr;
         } else {
@@ -473,13 +487,18 @@ public class RouteInfoManager {
 
             try {
                 try {
+                    //将几个Map的操作 放在一把锁下
                     this.lock.writeLock().lockInterruptibly();
+                    //从存活的broker的将broker去除掉
                     this.brokerLiveTable.remove(brokerAddrFound);
+                    //
                     this.filterServerTable.remove(brokerAddrFound);
                     String brokerNameFound = null;
                     boolean removeBrokerName = false;
+                    //broker的地址 和 broker数据的表
                     Iterator<Entry<String, BrokerData>> itBrokerAddrTable =
                         this.brokerAddrTable.entrySet().iterator();
+
                     while (itBrokerAddrTable.hasNext() && (null == brokerNameFound)) {
                         BrokerData brokerData = itBrokerAddrTable.next().getValue();
 
@@ -505,6 +524,7 @@ public class RouteInfoManager {
                         }
                     }
 
+                    //根据 brookerName 从 clusterName 与 BrokerName的关系中删除 brokerName 以及 ClusterName
                     if (brokerNameFound != null && removeBrokerName) {
                         Iterator<Entry<String, Set<String>>> it = this.clusterAddrTable.entrySet().iterator();
                         while (it.hasNext()) {
@@ -528,8 +548,10 @@ public class RouteInfoManager {
                     }
 
                     if (removeBrokerName) {
+
                         Iterator<Entry<String, List<QueueData>>> itTopicQueueTable =
                             this.topicQueueTable.entrySet().iterator();
+
                         while (itTopicQueueTable.hasNext()) {
                             Entry<String, List<QueueData>> entry = itTopicQueueTable.next();
                             String topic = entry.getKey();
@@ -561,6 +583,7 @@ public class RouteInfoManager {
         }
     }
 
+    //仅仅是打印日志 使用
     public void printAllPeriodically() {
         try {
             try {

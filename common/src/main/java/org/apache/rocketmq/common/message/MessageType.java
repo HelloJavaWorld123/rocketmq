@@ -19,6 +19,7 @@ package org.apache.rocketmq.common.message;
 
 public enum MessageType {
     Normal_Msg,
+    //两阶段事务消息的第一阶段
     Trans_Msg_Half,
     Trans_msg_Commit,
     Delay_Msg,

@@ -19,9 +19,12 @@ package org.apache.rocketmq.client.producer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 
+//发送事务消息时 增加的监听器
 public interface TransactionListener {
     /**
      * When send transactional prepare(half) message succeed, this method will be invoked to execute local transaction.
+     *
+     * 执行本地事务的方法
      *
      * @param msg Half(prepare) message
      * @param arg Custom business parameter
@@ -32,6 +35,8 @@ public interface TransactionListener {
     /**
      * When no response to prepare(half) message. broker will send check message to check the transaction status, and this
      * method will be invoked to get local transaction status.
+     *
+     * 检查本地事务是否执行成功 返回状态
      *
      * @param msg Check message
      * @return Transaction state

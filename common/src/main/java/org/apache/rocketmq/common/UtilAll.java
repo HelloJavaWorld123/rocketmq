@@ -52,6 +52,7 @@ public class UtilAll {
     public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
     public static final String YYYYMMDDHHMMSS = "yyyyMMddHHmmss";
+    //2字节 长度
     final static char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     public static int getPid() {
@@ -238,11 +239,19 @@ public class UtilAll {
         return (int) (crc32.getValue() & 0x7FFFFFFF);
     }
 
+    //一个byte 只需要低八位就OK
     public static String bytes2string(byte[] src) {
+        //无符号类型 8位 字符unicode
         char[] hexChars = new char[src.length * 2];
         for (int j = 0; j < src.length; j++) {
             int v = src[j] & 0xFF;
+            System.out.println(v);
+            System.out.println(v >>> 4);
+            System.out.println(Integer.toBinaryString(0x0F));
+            System.out.println(v & 0x0F);
+            //将一个byte的高四位 和 第四位 分开存储 该四位
             hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            //低四位
             hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
         return new String(hexChars);
@@ -307,10 +316,13 @@ public class UtilAll {
         return result;
     }
 
+    //压缩 对输出流进行压缩
     public static byte[] compress(final byte[] src, final int level) throws IOException {
         byte[] result = src;
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(src.length);
+        //0-9 级
         java.util.zip.Deflater defeater = new java.util.zip.Deflater(level);
+
         DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(byteArrayOutputStream, defeater);
         try {
             deflaterOutputStream.write(src);

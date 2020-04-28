@@ -16,18 +16,22 @@
  */
 package org.apache.rocketmq.common.message;
 
+import org.apache.rocketmq.common.UtilAll;
+
 import java.nio.ByteBuffer;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.common.UtilAll;
 
 public class MessageClientIDSetter {
     private static final String TOPIC_KEY_SPLITTER = "#";
     private static final int LEN;
     private static final String FIX_STRING;
+    //自增的流水号
     private static final AtomicInteger COUNTER;
+    //每个月的1号 到 毫秒值
     private static long startTime;
+    //下个月的1号 毫秒值
     private static long nextStartTime;
 
     static {
@@ -37,12 +41,18 @@ public class MessageClientIDSetter {
         } catch (Exception e) {
             ip = createFakeIP();
         }
+        //16
         LEN = ip.length + 2 + 4 + 4 + 2;
         ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + 2 + 4);
+        //4字节的ip
         tempBuffer.put(ip);
+        //2字节的pid
         tempBuffer.putShort((short) UtilAll.getPid());
+        //4字节的类加载器的hasCode
         tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());
+        //固定的字符串
         FIX_STRING = UtilAll.bytes2string(tempBuffer.array());
+        //设置当前月份的开始时间 和 下个月的开始时间
         setStartTime(System.currentTimeMillis());
         COUNTER = new AtomicInteger(0);
     }
@@ -55,8 +65,11 @@ public class MessageClientIDSetter {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
+        //当前时间的 当前月1号
         startTime = cal.getTimeInMillis();
+        System.out.println((int)(System.currentTimeMillis()-startTime));
         cal.add(Calendar.MONTH, 1);
+        //下个月的开始时间
         nextStartTime = cal.getTimeInMillis();
     }
 
@@ -112,8 +125,11 @@ public class MessageClientIDSetter {
     }
 
     public static String createUniqID() {
+        //32的容量 char数组
         StringBuilder sb = new StringBuilder(LEN * 2);
+        //20的容量
         sb.append(FIX_STRING);
+        //拼接上时间戳的字符串 12的容量
         sb.append(UtilAll.bytes2string(createUniqIDBuffer()));
         return sb.toString();
     }
@@ -124,11 +140,19 @@ public class MessageClientIDSetter {
         if (current >= nextStartTime) {
             setStartTime(current);
         }
+        //当前时间 距离1号的时间差值 4字节
         buffer.putInt((int) (System.currentTimeMillis() - startTime));
+        //自增的流水号 2字节
         buffer.putShort((short) COUNTER.getAndIncrement());
         return buffer.array();
     }
 
+    public static void main(String[] args) {
+        String uniqID = createUniqID();
+        System.out.println(uniqID);
+    }
+
+    //为当前事务消息增加唯一的id
     public static void setUniqID(final Message msg) {
         if (msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX) == null) {
             msg.putProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, createUniqID());

@@ -84,6 +84,7 @@ public class NamesrvController {
 
         this.registerProcessor();
 
+        //使用一个线程进行固定频率的broker是否存活的扫描 延迟5秒后每间隔10秒扫描一次
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
@@ -92,6 +93,7 @@ public class NamesrvController {
             }
         }, 5, 10, TimeUnit.SECONDS);
 
+        //使用一个线程 日志信息的输出  固定频率的扫描 延迟1秒 固定10秒的频率进行扫描
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
