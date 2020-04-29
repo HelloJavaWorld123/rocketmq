@@ -38,7 +38,9 @@ public class RemotingCommand {
     public static final String SERIALIZE_TYPE_ENV = "ROCKETMQ_SERIALIZE_TYPE";
     public static final String REMOTING_VERSION_KEY = "rocketmq.remoting.version";
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    //标记当发送的指令是请求的指令还是响应的指令
     private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
+    //单边发送的指令类型
     private static final int RPC_ONEWAY = 1; // 0, RPC
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
         new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
@@ -76,6 +78,7 @@ public class RemotingCommand {
     private LanguageCode language = LanguageCode.JAVA;
     private int version = 0;
     private int opaque = requestId.getAndIncrement();
+    //
     private int flag = 0;
     private String remark;
     //扩展字段的名称和值 也就是发送的消息体
@@ -233,6 +236,7 @@ public class RemotingCommand {
         return result;
     }
 
+    //标记位 响应的类型
     public void markResponseType() {
         int bits = 1 << RPC_TYPE;
         this.flag |= bits;
@@ -500,15 +504,16 @@ public class RemotingCommand {
 
     @JSONField(serialize = false)
     public RemotingCommandType getType() {
+        //
         if (this.isResponseType()) {
             return RemotingCommandType.RESPONSE_COMMAND;
         }
-
         return RemotingCommandType.REQUEST_COMMAND;
     }
 
     @JSONField(serialize = false)
     public boolean isResponseType() {
+        // bits = 1
         int bits = 1 << RPC_TYPE;
         return (this.flag & bits) == bits;
     }

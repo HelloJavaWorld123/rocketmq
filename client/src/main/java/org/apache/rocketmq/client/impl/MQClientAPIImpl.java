@@ -913,6 +913,7 @@ public class MQClientAPIImpl {
     }
 
     public void endTransactionOneway(final String addr, final EndTransactionRequestHeader requestHeader, final String remark, final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException {
+        //转换成发送的指令
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, requestHeader);
 
         request.setRemark(remark);

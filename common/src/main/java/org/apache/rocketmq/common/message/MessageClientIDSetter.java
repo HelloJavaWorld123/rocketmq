@@ -129,6 +129,7 @@ public class MessageClientIDSetter {
         StringBuilder sb = new StringBuilder(LEN * 2);
         //20的容量
         sb.append(FIX_STRING);
+        System.out.println(FIX_STRING);
         //拼接上时间戳的字符串 12的容量
         sb.append(UtilAll.bytes2string(createUniqIDBuffer()));
         return sb.toString();
@@ -148,8 +149,9 @@ public class MessageClientIDSetter {
     }
 
     public static void main(String[] args) {
-        String uniqID = createUniqID();
-        System.out.println(uniqID);
+//        String uniqID = createUniqID();
+//        System.out.println(uniqID);
+        byte[] ipFromID = getIPFromID("AC101437051018B4AAC292B2A5EA0000");
     }
 
     //为当前事务消息增加唯一的id

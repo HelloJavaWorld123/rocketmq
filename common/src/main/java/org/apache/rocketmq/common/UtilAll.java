@@ -244,11 +244,8 @@ public class UtilAll {
         //无符号类型 8位 字符unicode
         char[] hexChars = new char[src.length * 2];
         for (int j = 0; j < src.length; j++) {
+            //
             int v = src[j] & 0xFF;
-            System.out.println(v);
-            System.out.println(v >>> 4);
-            System.out.println(Integer.toBinaryString(0x0F));
-            System.out.println(v & 0x0F);
             //将一个byte的高四位 和 第四位 分开存储 该四位
             hexChars[j * 2] = HEX_ARRAY[v >>> 4];
             //低四位
@@ -273,7 +270,9 @@ public class UtilAll {
     }
 
     private static byte charToByte(char c) {
-        return (byte) "0123456789ABCDEF".indexOf(c);
+        byte indexOf = (byte) "0123456789ABCDEF".indexOf(c);
+        System.out.println(indexOf);
+        return indexOf;
     }
 
     public static byte[] uncompress(final byte[] src) throws IOException {

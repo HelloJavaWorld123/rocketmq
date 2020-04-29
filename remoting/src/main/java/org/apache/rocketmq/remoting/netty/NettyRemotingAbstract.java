@@ -530,16 +530,21 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    //单边发送
     public void invokeOnewayImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis)
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
+        //处理标记位
         request.markOnewayRPC();
+        // 并发发送处理限制 获取一个入场的门票
         boolean acquired = this.semaphoreOneway.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
+        //获取成功过
         if (acquired) {
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreOneway);
             try {
                 channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture f) throws Exception {
+                        //操作完成后 将门票进行释放
                         once.release();
                         if (!f.isSuccess()) {
                             log.warn("send a request command to channel <" + channel.remoteAddress() + "> failed.");
@@ -597,6 +602,7 @@ public abstract class NettyRemotingAbstract {
                                 listener.onChannelClose(event.getRemoteAddr(), event.getChannel());
                                 break;
                             case CONNECT:
+                                //链接不能通过这个地方注册的
                                 listener.onChannelConnect(event.getRemoteAddr(), event.getChannel());
                                 break;
                             case EXCEPTION:
