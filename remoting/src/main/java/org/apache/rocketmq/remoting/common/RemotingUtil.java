@@ -147,8 +147,7 @@ public class RemotingUtil {
         int split = addr.lastIndexOf(":");
         String host = addr.substring(0, split);
         String port = addr.substring(split + 1);
-        InetSocketAddress isa = new InetSocketAddress(host, Integer.parseInt(port));
-        return isa;
+        return new InetSocketAddress(host, Integer.parseInt(port));
     }
 
     public static String socketAddress2String(final SocketAddress addr) {
@@ -163,7 +162,6 @@ public class RemotingUtil {
     public static SocketChannel connect(SocketAddress remote) {
         return connect(remote, 1000 * 5);
     }
-
     public static SocketChannel connect(SocketAddress remote, final int timeoutMillis) {
         SocketChannel sc = null;
         try {
@@ -174,6 +172,7 @@ public class RemotingUtil {
             sc.socket().setReceiveBufferSize(1024 * 64);
             sc.socket().setSendBufferSize(1024 * 64);
             sc.socket().connect(remote, timeoutMillis);
+            //链接之前设置为阻塞的 链接之后设置成非租塞的
             sc.configureBlocking(false);
             return sc;
         } catch (Exception e) {

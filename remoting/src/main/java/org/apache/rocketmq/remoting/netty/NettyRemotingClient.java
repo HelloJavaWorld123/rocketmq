@@ -76,7 +76,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final NettyClientConfig nettyClientConfig;
     private final Bootstrap bootstrap = new Bootstrap();
     private final EventLoopGroup eventLoopGroupWorker;
+
+    //增加Channel的可重入锁
     private final Lock lockChannelTables = new ReentrantLock();
+    //缓存Channel的容器
     private final ConcurrentMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<String, ChannelWrapper>();
 
     private final Timer timer = new Timer("ClientHouseKeepingService", true);
@@ -92,6 +95,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
      * Invoke the callback methods in this executor when process response.
      */
     private ExecutorService callbackExecutor;
+    //channel事件的监听器
     private final ChannelEventListener channelEventListener;
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
@@ -102,7 +106,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public NettyRemotingClient(final NettyClientConfig nettyClientConfig,
         final ChannelEventListener channelEventListener) {
         super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig.getClientAsyncSemaphoreValue());
+
         this.nettyClientConfig = nettyClientConfig;
+
         this.channelEventListener = channelEventListener;
 
         int publicThreadNums = nettyClientConfig.getClientCallbackExecutorThreads();
@@ -143,7 +149,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private static int initValueIndex() {
         Random r = new Random();
-
         return Math.abs(r.nextInt() % 999) % 999;
     }
 
@@ -200,6 +205,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         }, 1000 * 3, 1000);
 
+        //启动channel事件的处理器
         if (this.channelEventListener != null) {
             this.nettyEventExecutor.start();
         }
@@ -512,6 +518,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException {
         long beginStartTime = System.currentTimeMillis();
+        //创建一个channel
         final Channel channel = this.getAndCreateChannel(addr);
         if (channel != null && channel.isActive()) {
             try {
@@ -628,6 +635,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    //处理链接 异常和空闲的事件
     class NettyConnectManageHandler extends ChannelDuplexHandler {
         @Override
         public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress,

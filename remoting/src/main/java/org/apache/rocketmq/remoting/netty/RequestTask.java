@@ -21,6 +21,7 @@ import io.netty.channel.Channel;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class RequestTask implements Runnable {
+    //由调用者创建的任务
     private final Runnable runnable;
     private final long createTimestamp = System.currentTimeMillis();
     private final Channel channel;

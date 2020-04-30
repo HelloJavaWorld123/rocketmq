@@ -92,7 +92,7 @@ public class ClientLogger {
     }
 
     private static InternalLogger createLogger(final String loggerName) {
-        String clientLogLevel = System.getProperty(CLIENT_LOG_LEVEL, "INFO");
+        String clientLogLevel = System.getProperty(CLIENT_LOG_LEVEL, "DEBUG");
         boolean additive = "true".equalsIgnoreCase(System.getProperty(CLIENT_LOG_ADDITIVE));
         InternalLogger logger = InternalLoggerFactory.getLogger(loggerName);
         InnerLoggerFactory.InnerLogger innerLogger = (InnerLoggerFactory.InnerLogger) logger;

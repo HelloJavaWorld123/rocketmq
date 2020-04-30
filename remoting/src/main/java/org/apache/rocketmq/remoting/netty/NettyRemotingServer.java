@@ -71,6 +71,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private final NettyServerConfig nettyServerConfig;
 
     private final ExecutorService publicExecutor;
+
+    //事件监听器
     private final ChannelEventListener channelEventListener;
 
     private final Timer timer = new Timer("ServerHouseKeepingService", true);
@@ -434,6 +436,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
     }
 
+    /**
+     * 处理 channel的空闲 关闭 异常的事件 并用一个包含自定义队列的线程无限轮询对应的事件
+     */
     @ChannelHandler.Sharable
     class NettyConnectManageHandler extends ChannelDuplexHandler {
         @Override
@@ -456,6 +461,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             log.info("NETTY SERVER PIPELINE: channelActive, the channel[{}]", remoteAddress);
             super.channelActive(ctx);
 
+            //发布channel链接的事件
             if (NettyRemotingServer.this.channelEventListener != null) {
                 NettyRemotingServer.this.putNettyEvent(new NettyEvent(NettyEventType.CONNECT, remoteAddress, ctx.channel()));
             }
@@ -479,6 +485,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 if (event.state().equals(IdleState.ALL_IDLE)) {
                     final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                     log.warn("NETTY SERVER PIPELINE: IDLE exception [{}]", remoteAddress);
+                    //当读事件 或者 写事件 出现空闲时将对应的channel进行关闭
                     RemotingUtil.closeChannel(ctx.channel());
                     if (NettyRemotingServer.this.channelEventListener != null) {
                         NettyRemotingServer.this
@@ -486,7 +493,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     }
                 }
             }
-
             ctx.fireUserEventTriggered(evt);
         }
 

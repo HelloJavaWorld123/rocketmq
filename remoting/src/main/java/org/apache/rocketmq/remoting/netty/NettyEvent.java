@@ -18,6 +18,10 @@ package org.apache.rocketmq.remoting.netty;
 
 import io.netty.channel.Channel;
 
+/**
+ * 在channel注册和非注册的时候
+ * 发布对应的事件
+ */
 public class NettyEvent {
     private final NettyEventType type;
     private final String remoteAddr;

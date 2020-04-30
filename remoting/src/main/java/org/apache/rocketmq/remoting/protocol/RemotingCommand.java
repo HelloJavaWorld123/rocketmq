@@ -504,7 +504,6 @@ public class RemotingCommand {
 
     @JSONField(serialize = false)
     public RemotingCommandType getType() {
-        //
         if (this.isResponseType()) {
             return RemotingCommandType.RESPONSE_COMMAND;
         }
