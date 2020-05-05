@@ -73,6 +73,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * Just for testing or demo program
+     * 在Broker上默认创建的 topic
      */
     private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
 

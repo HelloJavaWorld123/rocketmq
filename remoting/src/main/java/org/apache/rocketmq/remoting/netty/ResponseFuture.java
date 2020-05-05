@@ -56,6 +56,7 @@ public class ResponseFuture {
         }
     }
 
+    //释放信号量
     public void release() {
         if (this.once != null) {
             this.once.release();

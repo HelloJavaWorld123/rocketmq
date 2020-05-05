@@ -154,6 +154,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
+        //给每一个handler指定一个线程池 异步执行
         this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(
             nettyClientConfig.getClientWorkerThreads(),
             new ThreadFactory() {
@@ -167,10 +168,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             });
 
         Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
+                //tcp 无延迟
             .option(ChannelOption.TCP_NODELAY, true)
+                //长连接
             .option(ChannelOption.SO_KEEPALIVE, false)
+                //链接超时时间
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis())
+                //发送数据的缓存容量
             .option(ChannelOption.SO_SNDBUF, nettyClientConfig.getClientSocketSndBufSize())
+                //接收数据的容量
             .option(ChannelOption.SO_RCVBUF, nettyClientConfig.getClientSocketRcvBufSize())
             .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
@@ -369,7 +375,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         throws InterruptedException, RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException {
         long beginStartTime = System.currentTimeMillis();
         final Channel channel = this.getAndCreateChannel(addr);
-        if (channel != null && channel.isActive()) {
+        if (channel != null && channel.isActive()) { //针对返回的channel进行双重检测
             try {
                 doBeforeRpcHooks(addr, request);
                 long costTime = System.currentTimeMillis() - beginStartTime;
@@ -391,7 +397,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 log.warn("invokeSync: wait response timeout exception, the channel[{}]", addr);
                 throw e;
             }
-        } else {
+        } else { //针对不能使用的channel进行关闭
             this.closeChannel(addr, channel);
             throw new RemotingConnectException(addr);
         }

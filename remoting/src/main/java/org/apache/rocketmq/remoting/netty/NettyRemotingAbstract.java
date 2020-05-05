@@ -422,7 +422,9 @@ public abstract class NettyRemotingAbstract {
 
         try {
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, timeoutMillis, null, null);
+            //对当前的响应的进行 序号和缓存
             this.responseTable.put(opaque, responseFuture);
+
             final SocketAddress addr = channel.remoteAddress();
             channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
                 @Override
@@ -452,6 +454,7 @@ public abstract class NettyRemotingAbstract {
 
             return responseCommand;
         } finally {
+            //上面执行成功后 或者失败后 都会把当前的响应给删除掉 除非执行上面逻辑时  服务器挂掉 才不会被移除
             this.responseTable.remove(opaque);
         }
     }
@@ -459,7 +462,9 @@ public abstract class NettyRemotingAbstract {
     public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis, final InvokeCallback invokeCallback) throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         long beginStartTime = System.currentTimeMillis();
         final int opaque = request.getOpaque();
+        //异步执行的锁
         boolean acquired = this.semaphoreAsync.tryAcquire(timeoutMillis, TimeUnit.MILLISECONDS);
+
         if (acquired) {
             final SemaphoreReleaseOnlyOnce once = new SemaphoreReleaseOnlyOnce(this.semaphoreAsync);
             long costTime = System.currentTimeMillis() - beginStartTime;
@@ -478,11 +483,13 @@ public abstract class NettyRemotingAbstract {
                             responseFuture.setSendRequestOK(true);
                             return;
                         }
+                        //明确知道当前的请求没有成功  进行释放以及响应的移除
                         requestFail(opaque);
                         log.warn("send a request command to channel <{}> failed.", RemotingHelper.parseChannelRemoteAddr(channel));
                     }
                 });
             } catch (Exception e) {
+                //释放信号量
                 responseFuture.release();
                 log.warn("send a request command to channel <" + RemotingHelper.parseChannelRemoteAddr(channel) + "> Exception", e);
                 throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);

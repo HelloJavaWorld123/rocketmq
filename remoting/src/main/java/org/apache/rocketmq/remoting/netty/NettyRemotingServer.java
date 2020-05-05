@@ -362,6 +362,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         serverHandler = new NettyServerHandler();
     }
 
+    //多个 InBoundHandler 根据接收的数据类型不同 处理对应的逻辑
     //两个处理读入数据的处理器 但是接手的对象不一样
     @ChannelHandler.Sharable
     class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
@@ -393,6 +394,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     case ENFORCING:
                         if (null != sslContext) {
                             ctx.pipeline()
+                                    //将 TLS_HANDLER_NAME 插入 HANDSHAKE_HANDLER_NAME 后面
                                 .addAfter(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
                                 .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
                             log.info("Handlers prepended to channel pipeline to establish SSL connection");
