@@ -241,6 +241,7 @@ public abstract class NettyRemotingAbstract {
                         } else {
                             //非异步的处理方式
                             NettyRequestProcessor processor = pair.getObject1();
+                            //异步处理 客户端的请求信息
                             RemotingCommand response = processor.processRequest(ctx, cmd);
                             doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(ctx.channel()), cmd, response);
                             callback.callback(response);

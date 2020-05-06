@@ -26,8 +26,13 @@ import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 public class TopicPublishInfo {
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;
+
+    //发送队列的集合
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+
+    //随机的索引下标
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
+
     private TopicRouteData topicRouteData;
 
     public boolean isOrderTopic() {
@@ -73,8 +78,9 @@ public class TopicPublishInfo {
             int index = this.sendWhichQueue.getAndIncrement();
             for (int i = 0; i < this.messageQueueList.size(); i++) {
                 int pos = Math.abs(index++) % this.messageQueueList.size();
-                if (pos < 0)
+                if (pos < 0) {
                     pos = 0;
+                }
                 MessageQueue mq = this.messageQueueList.get(pos);
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
@@ -84,11 +90,15 @@ public class TopicPublishInfo {
         }
     }
 
+    /**
+     * 用ThreadLocal 保存的一个Integer 发送消息时 轮询的方式 获取发送队列的下标
+     */
     public MessageQueue selectOneMessageQueue() {
         int index = this.sendWhichQueue.getAndIncrement();
         int pos = Math.abs(index) % this.messageQueueList.size();
-        if (pos < 0)
+        if (pos < 0) {
             pos = 0;
+        }
         return this.messageQueueList.get(pos);
     }
 
