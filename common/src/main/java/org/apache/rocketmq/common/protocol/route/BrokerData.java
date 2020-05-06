@@ -26,9 +26,10 @@ import org.apache.rocketmq.common.MixAll;
 public class BrokerData implements Comparable<BrokerData> {
     //当前broker所属的集群
     private String cluster;
-    //在集群中是唯一的
+    //在集群中不是唯一的
     private String brokerName;
-    //
+    // 通过brokerId 区别是master 还是 slave 以及对应的地址
+    // IP:PORT必须唯一 否则会被替换
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
 
     private final Random random = new Random();

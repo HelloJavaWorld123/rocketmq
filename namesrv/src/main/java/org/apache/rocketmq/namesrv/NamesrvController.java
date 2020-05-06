@@ -87,6 +87,7 @@ public class NamesrvController {
 
         this.remotingExecutor = Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
+        //初始化处理请求的处理器 并配置对应的线程池
         this.registerProcessor();
 
         //使用一个线程进行固定频率的broker是否存活的扫描 延迟5秒后每间隔10秒扫描一次

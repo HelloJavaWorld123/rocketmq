@@ -57,7 +57,7 @@ public class RouteInfoManager {
 
     //
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
-    //集群 集群名称和集群下 broker的名称的表 这也说明 如果集群下有重名的broker则不会存在
+    //broker 进行注册时 发送过来的所属集群的名称以及broker的名称
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
     //这个brokerAddr是IP吗？还是IP:port???
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
@@ -108,12 +108,14 @@ public class RouteInfoManager {
         return topicList.encode();
     }
 
+    //Broker 进行注册
     public RegisterBrokerResult registerBroker(final String clusterName, final String brokerAddr, final String brokerName, final long brokerId, final String haServerAddr, final TopicConfigSerializeWrapper topicConfigWrapper, final List<String> filterServerList, final Channel channel) {
         RegisterBrokerResult result = new RegisterBrokerResult();
         try {
             try {
                 this.lock.writeLock().lockInterruptibly();
 
+                //缓存当前broker所属的集群的名称以及当前broker的名称
                 Set<String> brokerNames = this.clusterAddrTable.get(clusterName);
                 if (null == brokerNames) {
                     brokerNames = new HashSet<String>();
@@ -122,7 +124,7 @@ public class RouteInfoManager {
                 brokerNames.add(brokerName);
 
                 boolean registerFirst = false;
-
+                //封装的broker数据 所属集群名称 所属的brokerName 主或者从对应的地址
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                 if (null == brokerData) {
                     registerFirst = true;
@@ -143,22 +145,28 @@ public class RouteInfoManager {
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
                 registerFirst = registerFirst || (null == oldAddr);
 
+                // 针对master
                 if (null != topicConfigWrapper && MixAll.MASTER_ID == brokerId) {
+                    //当前的broker配置是否有更新 或者是首次注册
                     if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion()) || registerFirst) {
+                        //当前broker的配置信息
                         ConcurrentMap<String, TopicConfig> tcTable = topicConfigWrapper.getTopicConfigTable();
                         if (tcTable != null) {
                             for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
+                                //创建或者更新broker的队列信息
                                 this.createAndUpdateQueueData(brokerName, entry.getValue());
                             }
                         }
                     }
                 }
 
+                //缓存存活的broker的相关信息
                 BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr, new BrokerLiveInfo(System.currentTimeMillis(), topicConfigWrapper.getDataVersion(), channel, haServerAddr));
                 if (null == prevBrokerLiveInfo) {
                     log.info("new broker registered, {} HAServer: {}", brokerAddr, haServerAddr);
                 }
 
+                //对当前的broker进行过滤的服务器
                 if (filterServerList != null) {
                     if (filterServerList.isEmpty()) {
                         this.filterServerTable.remove(brokerAddr);
@@ -167,7 +175,9 @@ public class RouteInfoManager {
                     }
                 }
 
+                //slave的broker
                 if (MixAll.MASTER_ID != brokerId) {
+                    //获取到master的地址
                     String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (masterAddr != null) {
                         BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.get(masterAddr);
@@ -208,6 +218,7 @@ public class RouteInfoManager {
     }
 
     private void createAndUpdateQueueData(final String brokerName, final TopicConfig topicConfig) {
+        //队列的元数据
         QueueData queueData = new QueueData();
         queueData.setBrokerName(brokerName);
         queueData.setWriteQueueNums(topicConfig.getWriteQueueNums());
@@ -231,6 +242,7 @@ public class RouteInfoManager {
                     if (qd.equals(queueData)) {
                         addNewOne = false;
                     } else {
+                        //这里只需要删除  addNewOne还是true  下面只需要新增 不会更新
                         log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), qd, queueData);
                         it.remove();
                     }

@@ -153,6 +153,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         switch (request.getCode()) {
+            //新增或者更新Topic
             case RequestCode.UPDATE_AND_CREATE_TOPIC:
                 return this.updateAndCreateTopic(ctx, request);
             case RequestCode.DELETE_TOPIC_IN_BROKER:
@@ -201,7 +202,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor implements 
                 return this.getConsumerStatus(ctx, request);
             case RequestCode.QUERY_TOPIC_CONSUME_BY_WHO:
                 return this.queryTopicConsumeByWho(ctx, request);
-            case RequestCode.REGISTER_FILTER_SERVER:
+            case RequestCode.REGISTER_FILTER_SERVER: //注册过滤服务器
                 return this.registerFilterServer(ctx, request);
             case RequestCode.QUERY_CONSUME_TIME_SPAN:
                 return this.queryConsumeTimeSpan(ctx, request);

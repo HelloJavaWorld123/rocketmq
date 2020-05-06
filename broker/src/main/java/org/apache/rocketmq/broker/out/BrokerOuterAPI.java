@@ -113,7 +113,7 @@ public class BrokerOuterAPI {
     }
 
     public List<RegisterBrokerResult> registerBrokerAll(final String clusterName, final String brokerAddr, final String brokerName, final long brokerId, final String haServerAddr, final TopicConfigSerializeWrapper topicConfigWrapper, final List<String> filterServerList, final boolean oneway, //是否是单边发送
-            final int timeoutMills, final boolean compressed) {
+                                                        final int timeoutMills, final boolean compressed) {
 
         final List<RegisterBrokerResult> registerBrokerResultList = Lists.newArrayList();
         //获取所有的NameServerAddressList
@@ -127,6 +127,7 @@ public class BrokerOuterAPI {
             requestHeader.setBrokerName(brokerName);
             requestHeader.setClusterName(clusterName);
             requestHeader.setHaServerAddr(haServerAddr);
+            //是否进行压缩
             requestHeader.setCompressed(compressed);
 
             RegisterBrokerBody requestBody = new RegisterBrokerBody();

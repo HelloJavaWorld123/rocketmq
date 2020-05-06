@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.slave;
 
 import java.io.IOException;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.MixAll;
@@ -46,26 +47,27 @@ public class SlaveSynchronize {
     }
 
     public void syncAll() {
+        //同步当前topic的配置信息
         this.syncTopicConfig();
+        //同步信息消费的偏移量
         this.syncConsumerOffset();
+        //同步消费偏移量的延迟信息
         this.syncDelayOffset();
+        //同步订阅的配置信息
         this.syncSubscriptionGroupConfig();
     }
 
     private void syncTopicConfig() {
         String masterAddrBak = this.masterAddr;
+        // master的地址不为空 并且地址不是自己的地址
         if (masterAddrBak != null && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
             try {
-                TopicConfigSerializeWrapper topicWrapper =
-                    this.brokerController.getBrokerOuterAPI().getAllTopicConfig(masterAddrBak);
-                if (!this.brokerController.getTopicConfigManager().getDataVersion()
-                    .equals(topicWrapper.getDataVersion())) {
+                TopicConfigSerializeWrapper topicWrapper = this.brokerController.getBrokerOuterAPI().getAllTopicConfig(masterAddrBak);
+                if (!this.brokerController.getTopicConfigManager().getDataVersion().equals(topicWrapper.getDataVersion())) {
 
-                    this.brokerController.getTopicConfigManager().getDataVersion()
-                        .assignNewOne(topicWrapper.getDataVersion());
+                    this.brokerController.getTopicConfigManager().getDataVersion().assignNewOne(topicWrapper.getDataVersion());
                     this.brokerController.getTopicConfigManager().getTopicConfigTable().clear();
-                    this.brokerController.getTopicConfigManager().getTopicConfigTable()
-                        .putAll(topicWrapper.getTopicConfigTable());
+                    this.brokerController.getTopicConfigManager().getTopicConfigTable().putAll(topicWrapper.getTopicConfigTable());
                     this.brokerController.getTopicConfigManager().persist();
 
                     log.info("Update slave topic config from master, {}", masterAddrBak);
@@ -80,10 +82,8 @@ public class SlaveSynchronize {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
             try {
-                ConsumerOffsetSerializeWrapper offsetWrapper =
-                    this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
-                this.brokerController.getConsumerOffsetManager().getOffsetTable()
-                    .putAll(offsetWrapper.getOffsetTable());
+                ConsumerOffsetSerializeWrapper offsetWrapper = this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
+                this.brokerController.getConsumerOffsetManager().getOffsetTable().putAll(offsetWrapper.getOffsetTable());
                 this.brokerController.getConsumerOffsetManager().persist();
                 log.info("Update slave consumer offset from master, {}", masterAddrBak);
             } catch (Exception e) {
@@ -96,13 +96,10 @@ public class SlaveSynchronize {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
             try {
-                String delayOffset =
-                    this.brokerController.getBrokerOuterAPI().getAllDelayOffset(masterAddrBak);
+                String delayOffset = this.brokerController.getBrokerOuterAPI().getAllDelayOffset(masterAddrBak);
                 if (delayOffset != null) {
 
-                    String fileName =
-                        StorePathConfigHelper.getDelayOffsetStorePath(this.brokerController
-                            .getMessageStoreConfig().getStorePathRootDir());
+                    String fileName = StorePathConfigHelper.getDelayOffsetStorePath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
                     try {
                         MixAll.string2File(delayOffset, fileName);
                     } catch (IOException e) {
@@ -118,21 +115,15 @@ public class SlaveSynchronize {
 
     private void syncSubscriptionGroupConfig() {
         String masterAddrBak = this.masterAddr;
-        if (masterAddrBak != null  && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
+        if (masterAddrBak != null && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
             try {
-                SubscriptionGroupWrapper subscriptionWrapper =
-                    this.brokerController.getBrokerOuterAPI()
-                        .getAllSubscriptionGroupConfig(masterAddrBak);
+                SubscriptionGroupWrapper subscriptionWrapper = this.brokerController.getBrokerOuterAPI().getAllSubscriptionGroupConfig(masterAddrBak);
 
-                if (!this.brokerController.getSubscriptionGroupManager().getDataVersion()
-                    .equals(subscriptionWrapper.getDataVersion())) {
-                    SubscriptionGroupManager subscriptionGroupManager =
-                        this.brokerController.getSubscriptionGroupManager();
-                    subscriptionGroupManager.getDataVersion().assignNewOne(
-                        subscriptionWrapper.getDataVersion());
+                if (!this.brokerController.getSubscriptionGroupManager().getDataVersion().equals(subscriptionWrapper.getDataVersion())) {
+                    SubscriptionGroupManager subscriptionGroupManager = this.brokerController.getSubscriptionGroupManager();
+                    subscriptionGroupManager.getDataVersion().assignNewOne(subscriptionWrapper.getDataVersion());
                     subscriptionGroupManager.getSubscriptionGroupTable().clear();
-                    subscriptionGroupManager.getSubscriptionGroupTable().putAll(
-                        subscriptionWrapper.getSubscriptionGroupTable());
+                    subscriptionGroupManager.getSubscriptionGroupTable().putAll(subscriptionWrapper.getSubscriptionGroupTable());
                     subscriptionGroupManager.persist();
                     log.info("Update slave Subscription Group from master, {}", masterAddrBak);
                 }

@@ -112,10 +112,12 @@ public class BrokerController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final InternalLogger LOG_PROTECTION = InternalLoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
     private static final InternalLogger LOG_WATER_MARK = InternalLoggerFactory.getLogger(LoggerName.WATER_MARK_LOGGER_NAME);
+    //TODO 参数是怎么加载的？？？？？
     private final BrokerConfig brokerConfig;
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
     private final MessageStoreConfig messageStoreConfig;
+
     private final ConsumerOffsetManager consumerOffsetManager;
     private final ConsumerManager consumerManager;
     private final ConsumerFilterManager consumerFilterManager;
@@ -132,14 +134,6 @@ public class BrokerController {
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("BrokerControllerScheduledThread"));
     private final SlaveSynchronize slaveSynchronize;
 
-    private final BlockingQueue<Runnable> sendThreadPoolQueue;
-    private final BlockingQueue<Runnable> pullThreadPoolQueue;
-    private final BlockingQueue<Runnable> replyThreadPoolQueue;
-    private final BlockingQueue<Runnable> queryThreadPoolQueue;
-    private final BlockingQueue<Runnable> clientManagerThreadPoolQueue;
-    private final BlockingQueue<Runnable> heartbeatThreadPoolQueue;
-    private final BlockingQueue<Runnable> consumerManagerThreadPoolQueue;
-    private final BlockingQueue<Runnable> endTransactionThreadPoolQueue;
 
     private final FilterServerManager filterServerManager;
     private final BrokerStatsManager brokerStatsManager;
@@ -147,11 +141,13 @@ public class BrokerController {
     private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
     private MessageStore messageStore;
 
+    //RemotingServer 类型
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
 
     private TopicConfigManager topicConfigManager;
 
+    //每一个处理器对应的线程池
     private ExecutorService sendMessageExecutor;
     private ExecutorService pullMessageExecutor;
     private ExecutorService replyMessageExecutor;
@@ -161,6 +157,15 @@ public class BrokerController {
     private ExecutorService heartbeatExecutor;
     private ExecutorService consumerManageExecutor;
     private ExecutorService endTransactionExecutor;
+    //每一个线程池对应的队列
+    private final BlockingQueue<Runnable> sendThreadPoolQueue;
+    private final BlockingQueue<Runnable> pullThreadPoolQueue;
+    private final BlockingQueue<Runnable> replyThreadPoolQueue;
+    private final BlockingQueue<Runnable> queryThreadPoolQueue;
+    private final BlockingQueue<Runnable> clientManagerThreadPoolQueue;
+    private final BlockingQueue<Runnable> heartbeatThreadPoolQueue;
+    private final BlockingQueue<Runnable> consumerManagerThreadPoolQueue;
+    private final BlockingQueue<Runnable> endTransactionThreadPoolQueue;
 
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
@@ -486,6 +491,9 @@ public class BrokerController {
         }
     }
 
+    /**
+     * 服务端中
+     */
     public void registerProcessor() {
         /**
          * SendMessageProcessor
@@ -870,6 +878,7 @@ public class BrokerController {
 
     public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
 
+        //当前注册的broker的创建一个版本信息 以及先关的配置信息
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
 
         if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission()) || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
@@ -886,7 +895,11 @@ public class BrokerController {
         }
     }
 
+    /**
+     * 注册时 Broker是作为 客户端 向NameServer 发送请求
+     */
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway, TopicConfigSerializeWrapper topicConfigWrapper) {
+        //向NameServer发送注册的请求
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(this.brokerConfig.getBrokerClusterName(), this.getBrokerAddr(), this.brokerConfig.getBrokerName(), this.brokerConfig.getBrokerId(), this.getHAServerAddr(), topicConfigWrapper, this.filterServerManager.buildNewFilterServerList(), oneway, this.brokerConfig.getRegisterBrokerTimeoutMills(), this.brokerConfig.isCompressedRegister());
 
         if (registerBrokerResultList.size() > 0) {
@@ -1048,6 +1061,7 @@ public class BrokerController {
         return accessValidatorMap;
     }
 
+    //slave主动同步master上的信息 延迟3毫秒 每10毫秒拉取一次
     private void handleSlaveSynchronize(BrokerRole role) {
         if (role == BrokerRole.SLAVE) {
             if (null != slaveSyncFuture) {
