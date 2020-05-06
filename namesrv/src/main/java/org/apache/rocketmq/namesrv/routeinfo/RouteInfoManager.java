@@ -175,7 +175,7 @@ public class RouteInfoManager {
                     }
                 }
 
-                //slave的broker
+                //slave的broker 只有slave的时候才会返回master的address以及高可用的地址
                 if (MixAll.MASTER_ID != brokerId) {
                     //获取到master的地址
                     String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
