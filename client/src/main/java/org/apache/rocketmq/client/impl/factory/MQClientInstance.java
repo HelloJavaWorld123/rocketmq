@@ -101,6 +101,7 @@ public class MQClientInstance {
     private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
     private final Lock lockNamesrv = new ReentrantLock();
     private final Lock lockHeartbeat = new ReentrantLock();
+    //根据topic获取到的路由信息 在本地进行缓存的信息
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable = new ConcurrentHashMap<String, HashMap<Long, String>>();
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable = new ConcurrentHashMap<String, HashMap<String, Integer>>();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
@@ -496,6 +497,7 @@ public class MQClientInstance {
         }
     }
 
+
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
         return updateTopicRouteInfoFromNameServer(topic, false, null);
     }
@@ -592,12 +594,19 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 从NameServer获取当前Topic对应的路由信息
+     *
+     * @param topic             ： topic名称
+     * @param isDefault         ：是否是默认的topic名称 比如 TBW102 topic
+     * @param defaultMQProducer :包含默认的topic的名称 以及 默认的消息队列的数量
+     */
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault, DefaultMQProducer defaultMQProducer) {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
                     TopicRouteData topicRouteData;
-                    //两者的区别是否允许topic不存在 default不允许topic不存在
+                    //这个是获取TBW102的路由信息 作为默认的路由信息
                     if (isDefault && defaultMQProducer != null) {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(), 1000 * 3);
                         if (topicRouteData != null) {
@@ -608,7 +617,7 @@ public class MQClientInstance {
                             }
                         }
                     } else {
-                        //从nameserver端获取topic的路由信息
+                        //从nameserver端获取topic的路由信息 抛出异常
                         topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
                     }
                     if (topicRouteData != null) {

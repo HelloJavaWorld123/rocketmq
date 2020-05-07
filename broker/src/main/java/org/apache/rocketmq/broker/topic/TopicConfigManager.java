@@ -54,6 +54,7 @@ public class TopicConfigManager extends ConfigManager {
     public TopicConfigManager() {
     }
 
+    //在当前broker启动后 会将下面的topic携带 一起注册到NameServer的路由信息中
     public TopicConfigManager(BrokerController brokerController) {
         this.brokerController = brokerController;
         {
@@ -66,11 +67,14 @@ public class TopicConfigManager extends ConfigManager {
             this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
-            // MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC
+            // MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC TBW102 topic 全局默认的路由信息 进行初始化
+            //当拉取发送消息时topic不存在时 会获取该topic的路由消息作为默认的路由数据
+            //如果该topic也不存在 则抛出找不到路由消息的异常
             if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
                 String topic = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
                 TopicConfig topicConfig = new TopicConfig(topic);
                 this.systemTopicList.add(topic);
+                //8个读的队列 8个写的队列
                 topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
                 topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig().getDefaultTopicQueueNums());
                 int perm = PermName.PERM_INHERIT | PermName.PERM_READ | PermName.PERM_WRITE;

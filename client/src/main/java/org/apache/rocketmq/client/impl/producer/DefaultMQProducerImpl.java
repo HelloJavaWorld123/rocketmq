@@ -100,6 +100,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private final Random random = new Random();
     private final DefaultMQProducer defaultMQProducer;
 
+    //本地缓存的topic与之对应的路由信息
     private final ConcurrentMap<String/* topic */, TopicPublishInfo> topicPublishInfoTable = new ConcurrentHashMap<String, TopicPublishInfo>();
 
     private final ArrayList<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
@@ -112,10 +113,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private MQClientInstance mQClientFactory;
     //执行发送消息之前执行的其他的步骤
-    private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
+    private final ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<CheckForbiddenHook>();
 
     private int zipCompressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
-    private MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
+    private final MQFaultStrategy mqFaultStrategy = new MQFaultStrategy();
     private ExecutorService asyncSenderExecutor;
 
     public DefaultMQProducerImpl(final DefaultMQProducer defaultMQProducer) {
@@ -509,19 +510,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     private SendResult sendDefaultImpl(Message msg, final CommunicationMode communicationMode, final SendCallback sendCallback, final long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
-
+        //检查当前的服务器是否正常的启动
         this.makeSureStateOK();
-
+        //检查msg以及topic是否满足正常的要求
         Validators.checkMessage(msg, this.defaultMQProducer);
 
         final long invokeID = random.nextLong();
 
         long beginTimestampFirst = System.currentTimeMillis();
-
         long beginTimestampPrev = beginTimestampFirst;
-
         long endTimestamp = beginTimestampFirst;
 
+        //会从 本地容器或者nameServer 获取当前topic对应的路由信息（也就是Broker信息）
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
 
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
@@ -662,15 +662,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         //如果为空 则进行初始化
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
-            //远程获取
+            //根据当前的topic名称从nameServer获取对应的路由信息 只要获取到路由信息 就会将topic对应的信息覆盖
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
+        //如果没有被覆盖 使用new的方式创建的话 返回的都是false
         if (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok()) {
             return topicPublishInfo;
         } else {
+            //经过上面的步骤 找不到对应的路由信息 使用默认的topic查找对应的路由信息 这里除非将AutoCreateTopicEnable关闭 否则在注册Broker时 该topic会被注册
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
             return topicPublishInfo;
@@ -681,6 +682,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long beginStartTime = System.currentTimeMillis();
         String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());
 
+        //如果没有broker的地址 再查找一遍
         if (null == brokerAddr) {
             tryToFindTopicPublishInfo(mq.getTopic());
             brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(mq.getBrokerName());

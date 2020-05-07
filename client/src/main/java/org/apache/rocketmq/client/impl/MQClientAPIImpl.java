@@ -1161,11 +1161,11 @@ public class MQClientAPIImpl {
         RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
+            //抛出异常
             case ResponseCode.TOPIC_NOT_EXIST: {
                 if (allowTopicNotExist && !topic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                     log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
                 }
-
                 break;
             }
             case ResponseCode.SUCCESS: {
