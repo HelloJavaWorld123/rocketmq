@@ -33,6 +33,7 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
  * Client Common configuration
  */
 public class ClientConfig {
+    //默认值为false 如果为true 则在发送消息时 会将broker地址的端口号减2 进行消息的发送的
     public static final String SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY = "com.rocketmq.sendMessageWithVIPChannel";
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
     private String clientIP = RemotingUtil.getLocalAddress();
@@ -56,6 +57,7 @@ public class ClientConfig {
     private long pullTimeDelayMillsWhenException = 1000;
     private boolean unitMode = false;
     private String unitName;
+    //producer发送消息时 是否使用vipChannel的地址发送
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false"));
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;

@@ -171,6 +171,7 @@ public class TopicConfigManager extends ConfigManager {
 
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                     if (defaultTopicConfig != null) {
+                        //而且允许自动创建topic
                         if (defaultTopic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                             if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
                                 defaultTopicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
@@ -219,6 +220,7 @@ public class TopicConfigManager extends ConfigManager {
             log.error("createTopicInSendMessageMethod exception", e);
         }
 
+        //当前的broker 创建了新的topic 把新的topic与broker的对应关系 注册到 nameserver中
         if (createNew) {
             this.brokerController.registerBrokerAll(false, true, true);
         }

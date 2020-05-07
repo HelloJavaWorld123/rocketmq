@@ -22,5 +22,6 @@ public enum MessageType {
     //两阶段事务消息的第一阶段
     Trans_Msg_Half,
     Trans_msg_Commit,
+    //延迟消息
     Delay_Msg,
 }

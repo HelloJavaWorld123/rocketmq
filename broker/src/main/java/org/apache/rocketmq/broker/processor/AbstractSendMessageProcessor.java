@@ -156,12 +156,14 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
     }
 
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx, final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+        //检查当前的broker是否有写的权限 没有的话直接返回
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission()) && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("the broker[" + this.brokerController.getBrokerConfig().getBrokerIP1() + "] sending message is forbidden");
             return response;
         }
 
+        //检测topic是否合法
         if (!TopicValidator.validateTopic(requestHeader.getTopic(), response)) {
             return response;
         }
@@ -177,10 +179,12 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
                 }
             }
 
+            //针对不存在的topic进行创建
             log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(requestHeader.getTopic(), requestHeader.getDefaultTopic(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
 
             if (null == topicConfig) {
+                //重试创建
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
                 }
@@ -194,6 +198,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
         }
 
         int queueIdInt = requestHeader.getQueueId();
+        //最大有效的id
         int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s", queueIdInt, topicConfig.toString(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
@@ -253,7 +258,6 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
     }
 
     protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request) throws RemotingCommandException {
-
         SendMessageRequestHeaderV2 requestHeaderV2 = null;
         SendMessageRequestHeader requestHeader = null;
         switch (request.getCode()) {
